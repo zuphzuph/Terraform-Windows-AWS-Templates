@@ -68,7 +68,7 @@ resource "aws_instance" "winrm" {
   # Note that terraform uses Go WinRM which doesn't support https at this time. If server is not on a private network,
   # recommend bootstraping Chef via user_data.  See asg_user_data.tpl for an example on how to do that.
   # Strip anything you don't need/want below. 
-  # Steps for my install are as follows:
+  # Steps below are as follows:
   # Adds WinRM Rule
   # Installs Choco | Chrome
   # Provisions and Attaches Slave Storage
