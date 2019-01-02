@@ -1,4 +1,4 @@
-# Terraform Windows AWS Templaces
+# Terraform Windows AWS Templates
 This repo includes terraform templates for various uses.
 Templated tested on v0.11.11.
 
