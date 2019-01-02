@@ -45,7 +45,7 @@ resource "aws_instance" "winrm" {
   ebs_block_device {
     device_name = "/dev/xvdb"
     volume_type = "sc1"
-    volume_size = 40
+    volume_size = 500
     encrypted = "true"
     delete_on_termination = true
   }
@@ -89,7 +89,7 @@ resource "aws_instance" "winrm" {
   choco install googlechrome -y
   Initialize-Disk 1 -PartitionStyle GPT
   New-Partition –DiskNumber 1 -UseMaximumSize -AssignDriveLetter
-  Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel Data
+  Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel Slave
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServer
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-CommonHttpFeatures
