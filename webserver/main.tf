@@ -1,8 +1,8 @@
 # Specify the provider and access details
 provider "aws" {
   region = "${var.aws_region}"
-  access_key = "keyhere"
-  secret_key = "keyhere"
+  access_key = "key"
+  secret_key = "key"
 }
 
 # Lookup the correct AMI based on the region specified
