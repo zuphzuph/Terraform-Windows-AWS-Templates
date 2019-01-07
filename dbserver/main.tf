@@ -73,7 +73,6 @@ resource "aws_instance" "winrm" {
   # Sets Default Directories in MSSQL to D:\*
   # Disables IE Enhanced Secrity
   # Joins Specified Domain
-  # Adds Domain user to MSSQL SysAdmin Role
   user_data = <<EOF
 <script>
   winrm quickconfig -q & winrm set winrm/config @{MaxTimeoutms="1800000"} & winrm set winrm/config/service @{AllowUnencrypted="true"} & winrm set winrm/config/service/auth @{Basic="true"}
@@ -83,13 +82,16 @@ resource "aws_instance" "winrm" {
   # Set Administrator password
   $admin = [adsi]("WinNT://./administrator, user")
   $admin.psbase.invoke("SetPassword", "${var.admin_password}")
+  # Install Chocolatey for Package Mgmt
   Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+  # Partition, Mount and Create Directories
   Initialize-Disk 1 -PartitionStyle GPT
   New-Partition –DiskNumber 1 -UseMaximumSize -AssignDriveLetter
   Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel SQL-Stuff
   New-Item -ItemType directory -Path D:\Data
   New-Item -ItemType directory -Path D:\Backup
   New-Item -ItemType directory -Path D:\Log
+  # Set Default Paths for MSSQL Dirs
   $DataRegKeyPath = "HKLM:\Software\Microsoft\Microsoft SQL Server\MSSQL14.MSSQLSERVER\MSSQLServer"
   $DataRegKeyName = "DefaultData"
   $DataDirectory = "D:\Data"
@@ -114,6 +116,7 @@ resource "aws_instance" "winrm" {
       } Else {
       Set-ItemProperty -Path $BackupRegKeyPath -Name $BackupRegKeyName -Value $BackupDirectory
   }
+  # Disable IE Enhanced Protection Mode
   function Disable-InternetExplorerESC {
     $AdminKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}"
     $UserKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}"
@@ -126,15 +129,13 @@ resource "aws_instance" "winrm" {
   }
   Disable-UserAccessControl
   Disable-InternetExplorerESC
+  # Join EC2 Instance to Domain
   $domain = "domain.name.here"
   $password = "password" | ConvertTo-SecureString -asPlainText -Force
   $username = "$domain\username"
   $credential = New-Object System.Management.Automation.PSCredential($username,$password)
   Add-Computer -DomainName $domain -Credential $credential
   Restart-Computer
-  $svr = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "SQL2016";
-  $svrole = $svr.Roles | where {$_.Name -eq 'sysadmin'};
-  $svrole.AddMember("domain\username");
 </powershell>
 EOF
 }
