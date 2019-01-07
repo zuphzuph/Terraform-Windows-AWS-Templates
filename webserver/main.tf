@@ -84,12 +84,15 @@ resource "aws_instance" "winrm" {
   # Set Administrator password
   $admin = [adsi]("WinNT://./administrator, user")
   $admin.psbase.invoke("SetPassword", "${var.admin_password}")
+  # Installs Chocolatey for Package Mgmt and Chrome
   Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
   choco install urlrewrite -y
   choco install googlechrome -y
+  # Partitions and Mounts Slave Storage
   Initialize-Disk 1 -PartitionStyle GPT
   New-Partition –DiskNumber 1 -UseMaximumSize -AssignDriveLetter
   Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel Slave
+  # Adds IIS Roles (Remove as needed)
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServer
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-CommonHttpFeatures
@@ -120,6 +123,7 @@ resource "aws_instance" "winrm" {
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-ISAPIFilter
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-HttpCompressionStatic
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-ASPNET45
+  # Disable IE Enhanced Protection Mode
   function Disable-InternetExplorerESC {
     $AdminKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}"
     $UserKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}"
@@ -132,6 +136,7 @@ resource "aws_instance" "winrm" {
   }
   Disable-UserAccessControl
   Disable-InternetExplorerESC
+  # Join EC2 Instance to Domain
   $domain = "domain.name.here"
   $password = "password" | ConvertTo-SecureString -asPlainText -Force
   $username = "$domain\username"
