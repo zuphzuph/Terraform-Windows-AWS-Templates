@@ -41,15 +41,6 @@ resource "aws_instance" "winrm" {
     delete_on_termination = true
   }
 
-  # Slave storage
-  ebs_block_device {
-    device_name = "/dev/xvdb"
-    volume_type = "sc1"
-    volume_size = 500
-    encrypted = "true"
-    delete_on_termination = true
-  }
-
   # AZ to launch in
   availability_zone = "${var.aws_availzone}"
 
@@ -88,10 +79,6 @@ resource "aws_instance" "winrm" {
   Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
   choco install urlrewrite -y
   choco install googlechrome -y
-  # Partitions and Mounts Slave Storage
-  Initialize-Disk 1 -PartitionStyle GPT
-  New-Partition –DiskNumber 1 -UseMaximumSize -AssignDriveLetter
-  Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel Slave
   # Adds IIS Roles (Remove as needed)
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole
   Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServer
