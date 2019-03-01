@@ -6,13 +6,13 @@ provider "aws" {
 }
 
 # Lookup the correct AMI based on the region specified
-data "aws_ami" "amazon_windows_2016_sql_2017_std" {
+data "aws_ami" "amazon_windows_2019_sql_2017_std" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["Windows_Server-2016-English-Full-SQL_2017_Standard-*"]
+    values = ["Windows_Server-2019-English-Full-SQL_2017_Standard-*"]
   }
 }
 
@@ -28,7 +28,7 @@ resource "aws_instance" "winrm" {
   }
 
   instance_type = "m4.large"
-  ami           = "${data.aws_ami.amazon_windows_2016_sql_2017_std.image_id}"
+  ami           = "${data.aws_ami.amazon_windows_2019_sql_2017_std.image_id}"
 
   # Root storage
   # Terraform doesn't allow encryption of root at this time
