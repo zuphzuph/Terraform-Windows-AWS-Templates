@@ -6,7 +6,7 @@ provider "aws" {
 }
 
 # Lookup the correct AMI based on the region specified
-data "aws_ami" "amazon_windows_2016_std" {
+data "aws_ami" "amazon_windows_2019_std" {
   most_recent = true
   owners      = ["amazon"]
 
