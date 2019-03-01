@@ -71,46 +71,37 @@ resource "aws_instance" "winrm" {
   winrm quickconfig -q & winrm set winrm/config @{MaxTimeoutms="1800000"} & winrm set winrm/config/service @{AllowUnencrypted="true"} & winrm set winrm/config/service/auth @{Basic="true"}
 </script>
 <powershell>
-  netsh advfirewall firewall add rule name="WinRM in" protocol=TCP dir=in profile=any localport=5985 remoteip=any localip=any action=allow
-  # Set Administrator password
+  #Allow WinRM Connection
+  netsh advfirewall firewall add rule name="WinRM in" protocol=TCP dir=in profile=any localport=5985 remoteip=72.164.243.226 localip=any action=allow
+  
+  #Set Default Administrator password
   $admin = [adsi]("WinNT://./administrator, user")
   $admin.psbase.invoke("SetPassword", "${var.admin_password}")
-  # Installs Chocolatey for Package Mgmt and Chrome
-  Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+  
+  #Install IIS Features and Roles
+  Install-WindowsFeature -name Web-Server -IncludeAllSubFeature -IncludeManagementTools
+
+  #Install Chocolatey and Packages
+  Set-ExecutionPolicy Unrestricted -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
   choco install urlrewrite -y
   choco install googlechrome -y
-  # Adds IIS Roles (Remove as needed)
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServer
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-CommonHttpFeatures
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-HttpErrors
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-HttpRedirect
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-ApplicationDevelopment
-  Enable-WindowsOptionalFeature -online -FeatureName NetFx4Extended-ASPNET45
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-NetFxExtensibility45
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-HealthAndDiagnostics
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-HttpLogging
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-LoggingLibraries
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-RequestMonitor
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-HttpTracing
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-Security
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-RequestFiltering
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-Performance
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerManagementTools
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-IIS6ManagementCompatibility
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-Metabase
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-ManagementConsole
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-BasicAuthentication
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-WindowsAuthentication
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-StaticContent
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-DefaultDocument
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebSockets
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-ApplicationInit
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-ISAPIExtensions
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-ISAPIFilter
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-HttpCompressionStatic
-  Enable-WindowsOptionalFeature -Online -FeatureName IIS-ASPNET45
-  # Disable IE Enhanced Protection Mode
+
+  $source = "https://download.microsoft.com/download/C/F/F/CFF3A0B8-99D4-41A2-AE1A-496C08BEB904/WebPlatformInstaller_amd64_en-US.msi"
+  $destination = "$env:temp\WebPlatformInstaller_amd64_en-US.msi" 
+  $wc = New-Object System.Net.WebClient 
+  $wc.DownloadFile($source, $destination)
+  Start-Process -FilePath $destination -ArgumentList "/quiet" -wait
+  $WebPiCMd = 'C:\Program Files\Microsoft\Web Platform Installer\WebpiCmd-x64.exe'
+  Start-Process -wait -FilePath $WebPiCMd -ArgumentList "-WindowStyle Hidden /install /Products:UrlRewrite2 /AcceptEula /OptInMU /SuppressPostFinish" 
+
+  Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webserver/rewrite/GlobalRules" -name "." -value @{name='HTTP to HTTPS Redirect'; patternSyntax='ECMAScript'; stopProcessing='True'}
+  Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webserver/rewrite/GlobalRules/rule[@name='HTTP to HTTPS Redirect']/match" -name url -value "(.*)"
+  Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webserver/rewrite/GlobalRules/rule[@name='HTTP to HTTPS Redirect']/conditions" -name "." -value @{input="{HTTPS}"; pattern='^OFF$'}
+  Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webServer/rewrite/globalRules/rule[@name='HTTP to HTTPS Redirect']/action" -name "type" -value "Redirect"
+  Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webServer/rewrite/globalRules/rule[@name='HTTP to HTTPS Redirect']/action" -name "url" -value "https://{HTTP_HOST}/{R:1}"
+  Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webServer/rewrite/globalRules/rule[@name='HTTP to HTTPS Redirect']/action" -name "redirectType" -value "SeeOther" 
+  
+  #Disable IE Security Function
   function Disable-InternetExplorerESC {
     $AdminKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}"
     $UserKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}"
@@ -118,11 +109,20 @@ resource "aws_instance" "winrm" {
     Set-ItemProperty -Path $UserKey -Name "IsInstalled" -Value 0 -Force
     Stop-Process -Name Explorer -Force
   }
+  
+  #Disable UAC Function
   function Disable-UserAccessControl {
-    Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "ConsentPromptBehaviorAdmin" -Value 00000000 -Force 
+    Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "ConsentPromptBehaviorAdmin" -Value 00000000 -Force
+    Write-Host "User Access Control (UAC) has been disabled." -ForegroundColor Green    
   }
-  Disable-UserAccessControl
+
+  #Disable IE Sec and UAC
   Disable-InternetExplorerESC
+  Disable-UserAccessControl
+
+  #Set Time Zone
+  Set-TimeZone -Name "Mountain Standard Time"
+
   # Join EC2 Instance to Domain
   $domain = "domain.name.here"
   $password = "password" | ConvertTo-SecureString -asPlainText -Force
