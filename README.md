@@ -3,8 +3,8 @@ This repo includes terraform templates for various uses.
 Templated tested on v0.11.11.
 
 Current Templates:
-Server 2016 w/ IIS (webserver)
-Server 2016 w/ MSSQL 2017 (dbserver)
+Server 2019 w/ IIS (webserver)
+Server 2019 w/ MSSQL 2017 (dbserver)
 
 Requirements:
 AWS - IAM Permissions and Access/Secret key for EC2 Administraton | SSH Key Pair | VPC | Security Groups (Should be reachable by machine deployed from.)
