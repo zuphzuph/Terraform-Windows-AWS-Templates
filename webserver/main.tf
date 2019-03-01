@@ -25,7 +25,7 @@ resource "aws_instance" "winrm" {
     type     = "winrm"
     user     = "Administrator"
     password = "${var.admin_password}"
-    # set from default of 5m to 10m to avoid winrm timeout
+    # Limit for WinRM timeout
     timeout = "10m"
   }
   # Change instance type for appropriate use case
@@ -56,23 +56,23 @@ resource "aws_instance" "winrm" {
   #
   key_name = "${var.key_name}"
 
-#WinRM and PowerShell Provision Functions
+# WinRM and PowerShell Provision Functions
   user_data = <<EOF
 <script>
   winrm quickconfig -q & winrm set winrm/config @{MaxTimeoutms="1800000"} & winrm set winrm/config/service @{AllowUnencrypted="true"} & winrm set winrm/config/service/auth @{Basic="true"}
 </script>
 <powershell>
-  #Allow WinRM Connection
+  # Allow WinRM Connection
   netsh advfirewall firewall add rule name="WinRM in" protocol=TCP dir=in profile=any localport=5985 remoteip=72.164.243.226 localip=any action=allow
   
-  #Set Default Administrator password
+  # Set Default Administrator password
   $admin = [adsi]("WinNT://./administrator, user")
   $admin.psbase.invoke("SetPassword", "${var.admin_password}")
   
-  #Install IIS Features and Roles
+  # Install IIS Features and Roles
   Install-WindowsFeature -name Web-Server -IncludeAllSubFeature -IncludeManagementTools
 
-  #Install Chocolatey and Packages
+  # Install Chocolatey and Packages
   Set-ExecutionPolicy Unrestricted -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
   choco install urlrewrite -y
   choco install googlechrome -y
@@ -92,7 +92,7 @@ resource "aws_instance" "winrm" {
   Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webServer/rewrite/globalRules/rule[@name='HTTP to HTTPS Redirect']/action" -name "url" -value "https://{HTTP_HOST}/{R:1}"
   Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webServer/rewrite/globalRules/rule[@name='HTTP to HTTPS Redirect']/action" -name "redirectType" -value "SeeOther" 
   
-  #Disable IE Security Function
+  # Disable IE Security Function
   function Disable-InternetExplorerESC {
     $AdminKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}"
     $UserKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}"
@@ -101,13 +101,13 @@ resource "aws_instance" "winrm" {
     Stop-Process -Name Explorer -Force
   }
   
-  #Disable UAC Function
+  # Disable UAC Function
   function Disable-UserAccessControl {
     Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "ConsentPromptBehaviorAdmin" -Value 00000000 -Force
     Write-Host "User Access Control (UAC) has been disabled." -ForegroundColor Green    
   }
 
-  #Disable IE Sec and UAC
+  # Disable IE Sec and UAC
   Disable-InternetExplorerESC
   Disable-UserAccessControl
 
