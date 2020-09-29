@@ -1,6 +1,6 @@
 # Specify the provider and access details
 provider "aws" {
-  region = "${var.aws_region}"
+  region = "var.aws_region"
   access_key = "key"
   secret_key = "key"
 }
@@ -30,7 +30,7 @@ resource "aws_instance" "winrm" {
   }
   # Change instance type for appropriate use case
   instance_type = "t2.medium"
-  ami           = "${data.aws_ami.amazon_windows_2016_std.image_id}"
+  ami           = "data.aws_ami.amazon_windows_2016_std.image_id"
 
   # Root storage
   # Terraform doesn't allow encryption of root at this time
@@ -42,7 +42,7 @@ resource "aws_instance" "winrm" {
   }
 
   # AZ to launch in
-  availability_zone = "${var.aws_availzone}"
+  availability_zone = "var.aws_availzone"
 
   # VPC subnet and SGs
   subnet_id = "subnet-XXXXX"
@@ -54,7 +54,7 @@ resource "aws_instance" "winrm" {
   #
   # https://console.aws.amazon.com/ec2/v2/home?region=us-west-2#KeyPairs
   #
-  key_name = "${var.key_name}"
+  key_name = "var.key_name"
 
 # WinRM and PowerShell Provision Functions
   user_data = <<EOF
@@ -67,7 +67,7 @@ resource "aws_instance" "winrm" {
   
   # Set Default Administrator password
   $admin = [adsi]("WinNT://./administrator, user")
-  $admin.psbase.invoke("SetPassword", "${var.admin_password}")
+  $admin.psbase.invoke("SetPassword", "var.admin_password")
   
   # Install IIS Features and Roles
   Install-WindowsFeature -name Web-Server -IncludeAllSubFeature -IncludeManagementTools
