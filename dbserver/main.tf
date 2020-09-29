@@ -1,6 +1,6 @@
 # Specify the provider and access details
 provider "aws" {
-  region = "${var.aws_region}"
+  region = "var.aws_region"
   access_key = "key"
   secret_key = "key"
 }
@@ -22,13 +22,13 @@ resource "aws_instance" "winrm" {
   connection {
     type     = "winrm"
     user     = "Administrator"
-    password = "${var.admin_password}"
+    password = "var.admin_password"
     # set from default of 5m to 10m to avoid winrm timeout
     timeout = "10m"
   }
 
   instance_type = "m4.large"
-  ami           = "${data.aws_ami.amazon_windows_2019_sql_2017_std.image_id}"
+  ami           = "data.aws_ami.amazon_windows_2019_sql_2017_std.image_id"
 
   # Root storage
   # Terraform doesn't allow encryption of root at this time
@@ -49,7 +49,7 @@ resource "aws_instance" "winrm" {
   }
 
   # AZ to launch in
-  availability_zone = "${var.aws_availzone}"
+  availability_zone = "var.aws_availzone"
 
   # VPC subnet and SGs
   subnet_id = "subnet-XXXXX"
@@ -81,7 +81,7 @@ resource "aws_instance" "winrm" {
   netsh advfirewall firewall add rule name="WinRM in" protocol=TCP dir=in profile=any localport=5985 remoteip=any localip=any action=allow
   # Set Administrator password
   $admin = [adsi]("WinNT://./administrator, user")
-  $admin.psbase.invoke("SetPassword", "${var.admin_password}")
+  $admin.psbase.invoke("SetPassword", "var.admin_password")
   # Install Chocolatey for Package Mgmt
   Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
   # Partition, Mount and Create Directories
